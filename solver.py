@@ -33,6 +33,42 @@ BOARD9_2 = [
     [0, 7, 3, 0, 5, 2, 4, 1, 9]
 ]
 
+BOARD9_3 = [
+    [3, 0, 0, 0, 0, 6, 1, 0, 0],
+    [0, 5, 0, 3, 0, 9, 0, 0, 0],
+    [0, 2, 0, 8, 0, 0, 5, 4, 3],
+    [0, 0, 5, 0, 2, 0, 0, 0, 9],
+    [0, 4, 0, 0, 0, 0, 7, 0, 0],
+    [0, 0, 1, 0, 8, 0, 0, 0, 0],
+    [0, 3, 7, 0, 0, 8, 0, 6, 0],
+    [0, 8, 6, 1, 0, 0, 0, 0, 0],
+    [0, 1, 0, 7, 6, 0, 8, 0, 5]
+]
+
+BOARD9_EVIL = [
+    [9, 8, 0, 0, 0, 0, 4, 0, 0],
+    [0, 0, 0, 5, 0, 0, 0, 0, 0],
+    [0, 0, 6, 0, 1, 7, 0, 0, 2],
+    [6, 0, 0, 0, 8, 5, 0, 9, 0],
+    [0, 0, 5, 2, 0, 0, 0, 0, 0],
+    [0, 0, 0, 3, 0, 0, 0, 0, 8],
+    [0, 0, 0, 0, 3, 0, 0, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 2, 0],
+    [0, 0, 7, 0, 6, 8, 0, 0, 1]
+]
+
+BOARD9_EVIL2 = [
+    [0, 0, 7, 8, 9, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 5, 0, 0],
+    [0, 8, 0, 0, 6, 0, 3, 0, 9],
+    [0, 9, 0, 0, 0, 0, 0, 5, 0],
+    [0, 0, 4, 0, 0, 3, 9, 0, 1],
+    [0, 0, 0, 0, 1, 0, 0, 7, 0],
+    [2, 0, 0, 0, 0, 4, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 1, 0],
+    [0, 7, 0, 0, 3, 0, 8, 0, 6]
+]
+
 
 BOX_OFFSET = {
     4: {
@@ -140,13 +176,15 @@ class Board:
                     default = False
                     known = False
                 self.cells[row].append(Cell(row, col, self.size, value, default, known))
-                print(self.cells[row][-1])
+                
+                # DEBUG: print(self.cells[row][-1])
 
     
     def printBoard(self):
-        for x in range(self.size):
-            for y in range(self.size):
-                print(self.cells[x][y])
+        for row in self.cells:
+            for cell in row:
+                if cell.box == 1:
+                    print(cell)
 
     
     def printLayout(self):
@@ -186,14 +224,15 @@ class Board:
         # check row for known values
         for testCell in self.cells[i]:
             if self.compareValues(testCell, currentCell) == 'Found':
-                return
+                return True
         
         # check columns for known values
         for j in range(self.size):
             testCell = self.cells[j][currentCell.col]
             if self.compareValues(testCell, currentCell) == 'Found':
-                return
+                return True
 
+        # check box for known values
         x, y = BOX_OFFSET[self.size][currentCell.box]
         increase = int(sqrt(self.size))
         
@@ -201,34 +240,101 @@ class Board:
             for m in range(y, y + increase):
                 testCell = self.cells[m][k]
                 if self.compareValues(testCell, currentCell) == 'Found':
-                    return
+                    return True
+        
+        # check box for unknown values
+        flag = False
+        for value in currentCell.value:
+            if self.checkUnknownBox(value, currentCell) == 'Found':
+               flag = True
+            if self.checkUnknownRow(value, currentCell) == 'Found':
+               flag = True
+            if self.checkUnknownColumn(value, currentCell) == 'Found':
+               flag = True
 
+        return flag        
+
+
+    def checkUnknownRow(self, value, currentCell):
+        # loop through row items to see if a value only exists in current cell
+        for testCell in self.cells[currentCell.row]:
+            if testCell != currentCell and not testCell.known:
+                if value in testCell.value:
+                    return
+        
+        # if value does not exists in other cells' potential list, make it the known value by removing other values
+        for num in reversed(currentCell.value):
+            if num != value:
+                currentCell.remove(num)
+                currentCell.known = True
+
+        return 'Found'
+    
+
+    def checkUnknownColumn(self, value, currentCell):
+        # loop through row items to see if a value only exists in current cell
+        for j in range(self.size):
+            testCell = self.cells[j][currentCell.col]
+            if testCell != currentCell and not testCell.known:
+                if value in testCell.value:
+                    return
+        
+        # if value does not exists in other cells' potential list, make it the known value by removing other values
+        for num in reversed(currentCell.value):
+            if num != value:
+                currentCell.remove(num)
+                currentCell.known = True
+
+        return 'Found'
+
+
+    def checkUnknownBox(self, value, currentCell):
+
+        x, y = BOX_OFFSET[self.size][currentCell.box]
+        increase = int(sqrt(self.size))
+        
+        # loop through box items to see if a value only exists in current cell
+        for k in range(x, x + increase):
+            for m in range(y, y + increase):
+                testCell = self.cells[m][k]
+                if testCell != currentCell and not testCell.known:
+                    if value in testCell.value:
+                        return
+        
+        # if value does not exists in other cells' potential list, make it the known value by removing other values
+        for num in reversed(currentCell.value):
+            if num != value:
+                currentCell.remove(num)
+                currentCell.known = True
+
+        return 'Found'    
 
     def inferKnowledge(self):
+
+        newChanges = False
 
         for i in range(self.size):
             for currentCell in self.cells[i]:
             
                 # if value is already known, move to next cell
                 if not currentCell.known:
-                    self.checkSeries(currentCell, i)
-                
+                    if self.checkSeries(currentCell, i):
+                        newChanges = True
+
+        if newChanges:
+            self.inferKnowledge()
 
 
-
-board = Board(BOARD9_2)
+board = Board(BOARD9_EVIL2)
 board.initializeCells()
 print()
 board.inferKnowledge()
-print()
-board.inferKnowledge()
-print()
-board.inferKnowledge()
-print()
-board.inferKnowledge()
-print()
-board.inferKnowledge()
-print()
+# board.inferKnowledge()
+# board.inferKnowledge()
 
-board.printBoard()
+# board.printBoard()
+
+# board.printBoard()
 board.printLayout()
+
+
