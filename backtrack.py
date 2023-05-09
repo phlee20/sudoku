@@ -1,5 +1,4 @@
-import time
-import inference
+# Code adapted from Kylie Ying
 
 
 def findNextEmpty(puzzle):
@@ -44,9 +43,7 @@ def solveSudoku(puzzle):
     for guess in range(1, 10):
 
         if isValid(puzzle, guess, row, col):
-            # Write the guess in the cell
             puzzle[row][col] = guess
-            # Recurse to solve the next cell
             if solveSudoku(puzzle):
                 return True
 
@@ -54,8 +51,6 @@ def solveSudoku(puzzle):
         # Reset the cell
         puzzle[row][col] = 0
     
-    # If none of the numbers work, then the puzzle is unsolvable
-    # Go back up a step to try a new number in the previous cell
     return False
 
 
